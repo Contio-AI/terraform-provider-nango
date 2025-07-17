@@ -1,64 +1,156 @@
-# Terraform Provider Scaffolding (Terraform Plugin Framework)
+# Terraform Provider for Nango
 
-_This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
+This Terraform provider allows you to manage [Nango](https://www.nango.dev/) integrations as infrastructure as code.
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
+## Features
 
-- A resource and a data source (`internal/provider/`),
-- Examples (`examples/`) and generated documentation (`docs/`),
-- Miscellaneous meta files.
-
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework) platform. _Terraform Plugin Framework specific guides are titled accordingly._
-
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
-
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing) so that others can use it.
+- **Integration Management**: Create, read, update, and delete Nango integrations
+- **OAuth Configuration**: Configure OAuth2 credentials and scopes for various providers
+- **Data Sources**: Query existing integrations in your Nango environment
 
 ## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.23
+- [Go](https://golang.org/doc/install) >= 1.23 (for development)
+- A Nango account with an environment key
 
-## Building The Provider
+## Installation
 
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command:
+### Terraform Registry (Coming Soon)
 
-```shell
-go install
+```hcl
+terraform {
+  required_providers {
+    nango = {
+      source  = "contio.ai/contio/nango"
+      version = "~> 1.0"
+    }
+  }
+}
 ```
 
-## Adding Dependencies
+### Local Development
 
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
-Please see the Go documentation for the most up to date information about using Go modules.
+1. Clone this repository
+2. Build the provider: `make build`
+3. Install locally: `make install`
 
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
+## Usage
 
-```shell
-go get github.com/author/dependency
-go mod tidy
+### Provider Configuration
+
+```hcl
+provider "nango" {
+  environment_key = "your-nango-environment-key"
+}
 ```
 
-Then commit the changes to `go.mod` and `go.sum`.
+### Creating an Integration
 
-## Using the provider
+```hcl
+resource "nango_integration" "google" {
+  unique_key     = "platform-google"
+  display_name   = "Google"
+  nango_provider = "google"
 
-Fill this in for each provider
+  credentials = {
+    client_id     = var.google_client_id
+    client_secret = var.google_client_secret
+    type          = "OAUTH2"
+    scopes = [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/calendar.readonly"
+    ]
+  }
+}
+```
 
-## Developing the Provider
+### Querying Integrations
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
+```hcl
+data "nango_integrations" "all" {}
 
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
+output "integrations" {
+  value = data.nango_integrations.all.integrations
+}
+```
 
-To generate or update documentation, run `make generate`.
+## Resources
 
-In order to run the full suite of Acceptance tests, run `make testacc`.
+### `nango_integration`
 
-*Note:* Acceptance tests create real resources, and often cost money to run.
+Manages a Nango integration configuration.
 
-```shell
+#### Arguments
+
+- `unique_key` (Required) - Unique identifier for the integration
+- `display_name` (Required) - Human-readable name for the integration
+- `nango_provider` (Required) - The Nango provider type (e.g., "google", "microsoft")
+- `credentials` (Required) - OAuth credentials configuration
+  - `client_id` (Required) - OAuth client ID
+  - `client_secret` (Required) - OAuth client secret
+  - `type` (Required) - Credential type (typically "OAUTH2")
+  - `scopes` (Required) - List of OAuth scopes
+
+#### Attributes
+
+- `updated_at` - Timestamp of last update
+
+## Data Sources
+
+### `nango_integrations`
+
+Retrieves all integrations in your Nango environment.
+
+#### Attributes
+
+- `integrations` - List of integration objects with the same structure as the resource
+
+## Examples
+
+See the [examples](./examples/) directory for complete configuration examples including:
+
+- Google OAuth integration
+- Microsoft OAuth integration
+- Multiple service-specific integrations
+
+## Development
+
+### Building the Provider
+
+```bash
+make build
+```
+
+### Running Tests
+
+```bash
+make test
 make testacc
 ```
+
+### Generating Documentation
+
+```bash
+make generate
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Run `make test` and `make testacc`
+6. Submit a pull request
+
+## License
+
+This project is licensed under the MPL-2.0 License - see the LICENSE file for details.
+
+## Support
+
+For issues related to this Terraform provider, please open an issue on GitHub.
+
+For Nango-specific questions, refer to the [Nango documentation](https://docs.nango.dev/).
