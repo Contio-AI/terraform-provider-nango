@@ -3,7 +3,7 @@
 
 //go:build generate
 
-package tools
+package tools //nolint // no reason
 
 import (
 	_ "github.com/hashicorp/copywrite"
@@ -19,4 +19,4 @@ import (
 //go:generate terraform fmt -recursive ../examples/
 
 // Generate documentation.
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-dir .. -provider-name scaffolding
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-dir .. --provider-name nango
