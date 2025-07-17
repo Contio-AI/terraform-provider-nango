@@ -3,7 +3,7 @@
 page_title: "nango Provider"
 subcategory: ""
 description: |-
-
+  
 ---
 
 # nango Provider
