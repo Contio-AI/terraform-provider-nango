@@ -137,25 +137,25 @@ data "nango_integrations" "contio" {}
 
 output "google_platform" {
   sensitive = true
-  value = resource.nango_integration.platform-google
+  value     = resource.nango_integration.platform-google
 }
 
 output "service_google_calendar" {
   sensitive = true
-  value = resource.nango_integration.service-google-calendar
+  value     = resource.nango_integration.service-google-calendar
 }
 
 output "service_google_drive" {
   sensitive = true
-  value = resource.nango_integration.service-google-drive
+  value     = resource.nango_integration.service-google-drive
 }
 
 output "service_google_gmail" {
   sensitive = true
-  value = resource.nango_integration.service-google-gmail
+  value     = resource.nango_integration.service-google-gmail
 }
 
 output "microsoft_platform" {
   sensitive = true
-  value = resource.nango_integration.platform-microsoft
+  value     = resource.nango_integration.platform-microsoft
 }

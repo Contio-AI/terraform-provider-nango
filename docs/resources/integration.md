@@ -3,16 +3,14 @@
 page_title: "nango_integration Resource - nango"
 subcategory: ""
 description: |-
-  Manages a Nango integration, which represents a configured connection to a third-party service provider with OAuth credentials and scopes.
+  
 ---
 
 # nango_integration (Resource)
 
-Manages a Nango integration, which represents a configured connection to a third-party service provider with OAuth credentials and scopes.
+
 
 ## Example Usage
-
-### Basic Google OAuth Integration
 
 ```terraform
 resource "nango_integration" "google" {
@@ -27,46 +25,6 @@ resource "nango_integration" "google" {
     scopes = [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"
-    ]
-  }
-}
-```
-
-### Microsoft OAuth Integration with Multiple Scopes
-
-```terraform
-resource "nango_integration" "microsoft" {
-  unique_key     = "microsoft-oauth"
-  display_name   = "Microsoft OAuth"
-  nango_provider = "microsoft"
-
-  credentials = {
-    client_id     = var.microsoft_client_id
-    client_secret = var.microsoft_client_secret
-    type          = "OAUTH2"
-    scopes = [
-      "User.Read",
-      "Files.Read.All",
-      "offline_access"
-    ]
-  }
-}
-```
-
-### Service-Specific Integration
-
-```terraform
-resource "nango_integration" "google_calendar" {
-  unique_key     = "service-google-calendar"
-  display_name   = "Google Calendar"
-  nango_provider = "google-calendar"
-
-  credentials = {
-    client_id     = var.google_client_id
-    client_secret = var.google_client_secret
-    type          = "OAUTH2"
-    scopes = [
-      "https://www.googleapis.com/auth/calendar.readonly"
     ]
   }
 }
@@ -98,11 +56,3 @@ Required:
 Optional:
 
 - `scopes` (List of String) The scopes for this credential
-
-## Import
-
-Nango integrations can be imported using their `unique_key`:
-
-```bash
-terraform import nango_integration.example google-oauth
-```
