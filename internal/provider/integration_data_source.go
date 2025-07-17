@@ -36,13 +36,6 @@ type nangoIntegrationModel struct {
 	CreatedAt     string `json:"created_at"`
 	UpdatedAt     string `json:"updated_at"`
 	Logo          string `json:"logo"`
-	// Credentials   nangoCredentialModel `json:"credentials"`
-}
-
-type nangoCredentialModel struct {
-	ClientId     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	Type         string `json:"type"`
 }
 
 type integrationDataSourceModel struct {
@@ -52,7 +45,9 @@ type integrationModel struct {
 	UniqueKey     types.String                `tfsdk:"unique_key"`
 	DisplayName   types.String                `tfsdk:"display_name"`
 	NangoProvider types.String                `tfsdk:"nango_provider"`
+	CreatedAt     types.String                `tfsdk:"created_at"`
 	UpdatedAt     types.String                `tfsdk:"updated_at"`
+	Logo          types.String                `tfsdk:"logo"`
 	Credentials   *integrationCredentialModel `tfsdk:"credentials"`
 }
 
@@ -93,9 +88,17 @@ func (d *integrationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 							Computed:            true,
 							MarkdownDescription: "The nango_provider",
 						},
+						"created_at": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "When it was created",
+						},
 						"updated_at": schema.StringAttribute{
 							Computed:            true,
 							MarkdownDescription: "Last time it was updated",
+						},
+						"logo": schema.StringAttribute{
+							Computed:            true,
+							MarkdownDescription: "Absolute path to the logo of this integration (svg)",
 						},
 						"credentials": schema.SingleNestedAttribute{
 							Computed:            true,
@@ -157,7 +160,9 @@ func (d *integrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 			UniqueKey:     types.StringValue(integration.UniqueKey),
 			DisplayName:   types.StringValue(integration.DisplayName),
 			NangoProvider: types.StringValue(integration.NangoProvider),
+			CreatedAt:     types.StringValue(integration.CreatedAt),
 			UpdatedAt:     types.StringValue(integration.UpdatedAt),
+			Logo:          types.StringValue(integration.Logo),
 			Credentials:   nil, // Set to nil when credentials are not available
 		}
 		state.Integrations = append(state.Integrations, integ)
