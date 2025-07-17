@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     nango = {
-      source  = "contio.ai/contio/nango"
+      source  = "registry.terraform.io/contio/nango"
       version = "~> 1.0"
     }
   }

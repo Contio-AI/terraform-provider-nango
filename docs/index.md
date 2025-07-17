@@ -3,7 +3,7 @@
 page_title: "nango Provider"
 subcategory: ""
 description: |-
-  
+
 ---
 
 # nango Provider
@@ -16,7 +16,7 @@ description: |-
 terraform {
   required_providers {
     nango = {
-      source  = "contio.ai/contio/nango"
+      source  = "registry.terraform.io/contio/nango"
       version = "~> 1.0"
     }
   }
