@@ -3,7 +3,7 @@ module terraform-provider-nango
 go 1.23.7
 
 require (
-	github.com/hashicorp/go-retryablehttp v0.7.7
+	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/hashicorp/terraform-plugin-framework v1.14.1
 )
 
