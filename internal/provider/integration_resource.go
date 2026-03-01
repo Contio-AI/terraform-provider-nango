@@ -32,7 +32,7 @@ type integrationRequestModel struct {
 	UniqueKey     *string                            `json:"unique_key,omitempty"`
 	DisplayName   string                             `json:"display_name"`
 	NangoProvider *string                            `json:"provider,omitempty"`
-	Credentials   integrationCredentialsRequestModel `json:"credentials"`
+	Credentials   *integrationCredentialsRequestModel `json:"credentials,omitempty"`
 }
 
 type integrationCredentialsRequestModel struct {
@@ -73,7 +73,7 @@ func (r *integrationResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Last time it was updated",
 			},
 			"credentials": schema.SingleNestedAttribute{
-				Required:            true,
+				Optional:            true,
 				MarkdownDescription: "The credentials for this integration",
 				Attributes: map[string]schema.Attribute{
 					"client_id": schema.StringAttribute{
@@ -109,22 +109,25 @@ func (r *integrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// Convert scopes from types.List to []string, then to comma-delimited string
-	var scopes []string
-	plan.Credentials.Scopes.ElementsAs(ctx, &scopes, false)
-	scopesString := strings.Join(scopes, ",")
-
 	// Populate the request model with data from the plan
 	request := integrationRequestModel{
 		UniqueKey:     plan.UniqueKey.ValueStringPointer(),
 		DisplayName:   plan.DisplayName.ValueString(),
 		NangoProvider: plan.NangoProvider.ValueStringPointer(),
-		Credentials: integrationCredentialsRequestModel{
+	}
+
+	if plan.Credentials != nil {
+		// Convert scopes from types.List to []string, then to comma-delimited string
+		var scopes []string
+		plan.Credentials.Scopes.ElementsAs(ctx, &scopes, false)
+		scopesString := strings.Join(scopes, ",")
+
+		request.Credentials = &integrationCredentialsRequestModel{
 			ClientId:     plan.Credentials.ClientId.ValueString(),
 			ClientSecret: plan.Credentials.ClientSecret.ValueString(),
 			Type:         plan.Credentials.Type.ValueString(),
-			Scopes:       scopesString, // Now a comma-delimited string
-		},
+			Scopes:       scopesString,
+		}
 	}
 
 	// Convert request to JSON
@@ -240,22 +243,25 @@ func (r *integrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	// Convert scopes from types.List to []string, then to comma-delimited string
-	var scopes []string
-	plan.Credentials.Scopes.ElementsAs(ctx, &scopes, false)
-	scopesString := strings.Join(scopes, ",")
-
 	// Populate the request model with data from the plan (excluding provider for updates)
 	request := integrationRequestModel{
 		UniqueKey:   plan.UniqueKey.ValueStringPointer(),
 		DisplayName: plan.DisplayName.ValueString(),
 		// NangoProvider omitted for PATCH requests
-		Credentials: integrationCredentialsRequestModel{
+	}
+
+	if plan.Credentials != nil {
+		// Convert scopes from types.List to []string, then to comma-delimited string
+		var scopes []string
+		plan.Credentials.Scopes.ElementsAs(ctx, &scopes, false)
+		scopesString := strings.Join(scopes, ",")
+
+		request.Credentials = &integrationCredentialsRequestModel{
 			ClientId:     plan.Credentials.ClientId.ValueString(),
 			ClientSecret: plan.Credentials.ClientSecret.ValueString(),
 			Type:         plan.Credentials.Type.ValueString(),
-			Scopes:       scopesString, // Now a comma-delimited string
-		},
+			Scopes:       scopesString,
+		}
 	}
 
 	// Convert request to JSON

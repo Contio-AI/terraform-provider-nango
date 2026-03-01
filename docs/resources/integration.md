@@ -35,10 +35,13 @@ resource "nango_integration" "google" {
 
 ### Required
 
-- `credentials` (Attributes) The credentials for this integration (see [below for nested schema](#nestedatt--credentials))
 - `display_name` (String) The provider display name.
 - `nango_provider` (String) The nango_provider
 - `unique_key` (String) The integration ID that you created in Nango.
+
+### Optional
+
+- `credentials` (Attributes) The credentials for this integration (see [below for nested schema](#nestedatt--credentials))
 
 ### Read-Only
 
