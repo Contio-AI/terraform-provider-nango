@@ -32,11 +32,17 @@ type nanogoIntegrationResponse2 struct {
 	Data nangoIntegrationModel `json:"data"`
 }
 
+type nangoCredentialsResponseModel struct {
+	Type   string `json:"type"`
+	Scopes string `json:"scopes"`
+}
+
 type nangoIntegrationModel struct {
-	UniqueKey     string `json:"unique_key"`
-	DisplayName   string `json:"display_name"`
-	NangoProvider string `json:"provider"`
-	UpdatedAt     string `json:"updated_at"`
+	UniqueKey     string                         `json:"unique_key"`
+	DisplayName   string                         `json:"display_name"`
+	NangoProvider string                         `json:"provider"`
+	UpdatedAt     string                         `json:"updated_at"`
+	Credentials   *nangoCredentialsResponseModel `json:"credentials,omitempty"`
 }
 
 type integrationDataSourceModel struct {

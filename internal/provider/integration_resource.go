@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -189,18 +190,18 @@ func (r *integrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	// Get refreshed order value from HashiCups
-	integrationResponse, err := r.client.Get("https://api.nango.dev/integrations/" + state.UniqueKey.ValueString())
+	// Get refreshed integration value from Nango, including credentials/scopes
+	integrationResponse, err := r.client.Get("https://api.nango.dev/integrations/" + state.UniqueKey.ValueString() + "?include=credentials")
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading HashiCups Order",
-			"Could not read HashiCups order ID "+state.UniqueKey.ValueString()+": "+err.Error(),
+			"Error Reading Nango Integration",
+			"Could not read Nango integration "+state.UniqueKey.ValueString()+": "+err.Error(),
 		)
 		return
 	}
 
-	var integrations nangoIntegrationModel
-	err = json.NewDecoder(integrationResponse.Body).Decode(&integrations)
+	var integrationResp nanogoIntegrationResponse2
+	err = json.NewDecoder(integrationResponse.Body).Decode(&integrationResp)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Decode JSON",
@@ -209,18 +210,24 @@ func (r *integrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	// Overwrite items with refreshed state
-	// state.DisplayName = types.StringValue(integrations.DisplayName)
-	// state.NangoProvider = types.StringValue(integrations.NangoProvider)
-	// state.CreatedAt = types.StringValue(integrations.CreatedAt)
-	// state.UpdatedAt = types.StringValue(integrations.UpdatedAt)
-	// state.Logo = types.StringValue(integrations.Logo)
-	// state.WebhookUrl = types.StringValue(integrations.WebhookUrl)
-	// state.Credentials = integrationCredentialModel{
-	// 	ClientId:     types.StringValue(integrations.Credentials.ClientId),
-	// 	ClientSecret: types.StringValue(integrations.Credentials.ClientSecret),
-	// 	Type:         types.StringValue(integrations.Credentials.Type),
-	// }
+	// Overwrite items with refreshed state from the API
+	if integrationResp.Data.UpdatedAt != "" {
+		state.UpdatedAt = types.StringValue(integrationResp.Data.UpdatedAt)
+	}
+
+	// Parse scopes from API response back into types.List so Terraform can detect drift
+	if integrationResp.Data.Credentials != nil && integrationResp.Data.Credentials.Scopes != "" {
+		scopeStrings := strings.Split(integrationResp.Data.Credentials.Scopes, ",")
+		scopeValues := make([]attr.Value, len(scopeStrings))
+		for i, s := range scopeStrings {
+			scopeValues[i] = types.StringValue(strings.TrimSpace(s))
+		}
+		scopesList, scopeDiags := types.ListValue(types.StringType, scopeValues)
+		resp.Diagnostics.Append(scopeDiags...)
+		if !resp.Diagnostics.HasError() && state.Credentials != nil {
+			state.Credentials.Scopes = scopesList
+		}
+	}
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &state)
@@ -268,9 +275,6 @@ func (r *integrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	// Debug: Log the update request body
-	fmt.Printf("Update Request Body: %s\n", string(requestBody))
-
 	// Create a PATCH request to update the integration
 	req2, err := retryablehttp.NewRequest("PATCH", "https://api.nango.dev/integrations/"+plan.UniqueKey.ValueString(), requestBody)
 	if err != nil {
@@ -301,9 +305,6 @@ func (r *integrationResource) Update(ctx context.Context, req resource.UpdateReq
 		)
 		return
 	}
-
-	// Debug: Log the response
-	fmt.Printf("Update Response: %+v\n", integration)
 
 	// Update the plan with response data if available, otherwise use plan values
 	if integration.DisplayName != "" {
