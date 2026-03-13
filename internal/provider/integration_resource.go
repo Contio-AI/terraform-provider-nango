@@ -252,11 +252,10 @@ func (r *integrationResource) Update(ctx context.Context, req resource.UpdateReq
 	plan.Credentials.Scopes.ElementsAs(ctx, &scopes, false)
 	scopesString := strings.Join(scopes, ",")
 
-	// Populate the request model with data from the plan (excluding provider for updates)
+	// Populate the request model with data from the plan (excluding unique_key and provider for updates)
+	// unique_key must NOT be in the body — Nango interprets it as a rename attempt
 	request := integrationRequestModel{
-		UniqueKey:   plan.UniqueKey.ValueStringPointer(),
 		DisplayName: plan.DisplayName.ValueString(),
-		// NangoProvider omitted for PATCH requests
 		Credentials: integrationCredentialsRequestModel{
 			ClientId:     plan.Credentials.ClientId.ValueString(),
 			ClientSecret: plan.Credentials.ClientSecret.ValueString(),
@@ -291,6 +290,15 @@ func (r *integrationResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.AddError(
 			"Unable to Update Integration",
 			err.Error(),
+		)
+		return
+	}
+
+	if response.StatusCode != 200 {
+		bodyBytes, _ := json.Marshal(response.Body)
+		resp.Diagnostics.AddError(
+			"Nango API Error",
+			fmt.Sprintf("PATCH /integrations/%s returned HTTP %d: %s", plan.UniqueKey.ValueString(), response.StatusCode, string(bodyBytes)),
 		)
 		return
 	}
