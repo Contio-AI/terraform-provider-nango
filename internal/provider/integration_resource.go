@@ -215,6 +215,18 @@ func (r *integrationResource) Read(ctx context.Context, req resource.ReadRequest
 		state.UpdatedAt = types.StringValue(integrationResp.Data.UpdatedAt)
 	}
 
+	// Refresh client_id from the API so Terraform can detect credential drift.
+	// Without this, state forever echoes the last-applied value and an
+	// out-of-band credential change (or a bad var about to be applied over a
+	// hand-corrected one) never shows in a plan — updates send the full
+	// credentials object, so the rewrite happens silently (CON-6127).
+	// client_secret is deliberately not refreshed yet: the endpoint does
+	// return it, but surfacing secret drift is a separate decision (CON-6127
+	// tracks it as a follow-up).
+	if integrationResp.Data.Credentials != nil && integrationResp.Data.Credentials.ClientId != "" && state.Credentials != nil {
+		state.Credentials.ClientId = types.StringValue(integrationResp.Data.Credentials.ClientId)
+	}
+
 	// Parse scopes from API response back into types.List so Terraform can detect drift
 	if integrationResp.Data.Credentials != nil && integrationResp.Data.Credentials.Scopes != "" {
 		scopeStrings := strings.Split(integrationResp.Data.Credentials.Scopes, ",")

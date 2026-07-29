@@ -33,8 +33,9 @@ type nanogoIntegrationResponse2 struct {
 }
 
 type nangoCredentialsResponseModel struct {
-	Type   string `json:"type"`
-	Scopes string `json:"scopes"`
+	Type     string `json:"type"`
+	Scopes   string `json:"scopes"`
+	ClientId string `json:"client_id"`
 }
 
 type nangoIntegrationModel struct {
