@@ -83,6 +83,7 @@ func (r *integrationResource) Schema(_ context.Context, _ resource.SchemaRequest
 					},
 					"client_secret": schema.StringAttribute{
 						Required:            true,
+						Sensitive:           true,
 						MarkdownDescription: "The client secret",
 					},
 					"type": schema.StringAttribute{
@@ -213,6 +214,23 @@ func (r *integrationResource) Read(ctx context.Context, req resource.ReadRequest
 	// Overwrite items with refreshed state from the API
 	if integrationResp.Data.UpdatedAt != "" {
 		state.UpdatedAt = types.StringValue(integrationResp.Data.UpdatedAt)
+	}
+
+	// Refresh client_id and client_secret from the API so Terraform can detect
+	// credential drift. Without this, state forever echoes the last-applied
+	// values and an out-of-band credential change (or a bad var about to be
+	// applied over a hand-corrected one) never shows in a plan — updates send
+	// the full credentials object, so the rewrite happens silently (CON-6127).
+	// The non-empty guards keep an API contract change (field dropped or
+	// masked to empty) from wiping state; a masked-to-placeholder change would
+	// surface as a loud perpetual diff rather than a silent clobber.
+	if integrationResp.Data.Credentials != nil && state.Credentials != nil {
+		if integrationResp.Data.Credentials.ClientId != "" {
+			state.Credentials.ClientId = types.StringValue(integrationResp.Data.Credentials.ClientId)
+		}
+		if integrationResp.Data.Credentials.ClientSecret != "" {
+			state.Credentials.ClientSecret = types.StringValue(integrationResp.Data.Credentials.ClientSecret)
+		}
 	}
 
 	// Parse scopes from API response back into types.List so Terraform can detect drift
