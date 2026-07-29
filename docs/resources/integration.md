@@ -50,7 +50,7 @@ resource "nango_integration" "google" {
 Required:
 
 - `client_id` (String) The client ID
-- `client_secret` (String) The client secret
+- `client_secret` (String, Sensitive) The client secret
 - `type` (String) The type of credential
 
 Optional:
