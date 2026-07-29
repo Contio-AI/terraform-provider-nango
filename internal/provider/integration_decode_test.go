@@ -28,6 +28,9 @@ func TestIntegrationResponseDecodesClientId(t *testing.T) {
 	if got, want := resp.Data.Credentials.ClientId, "ae7862fc-486d-43a3-9fc8-bfe2ba1e10f2"; got != want {
 		t.Fatalf("client_id = %q, want %q", got, want)
 	}
+	if got, want := resp.Data.Credentials.ClientSecret, "s"; got != want {
+		t.Fatalf("client_secret = %q, want %q", got, want)
+	}
 	if got, want := resp.Data.Credentials.Scopes, "a,b"; got != want {
 		t.Fatalf("scopes = %q, want %q", got, want)
 	}
