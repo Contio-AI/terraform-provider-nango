@@ -24,6 +24,10 @@ terraform {
 
 provider "nango" {
   environment_key = "your-nango-environment-key"
+
+  # Optional: Set the base URL for self-hosted Nango instances.
+  # Defaults to https://api.nango.dev. Can also be set via the NANGO_HOST environment variable.
+  # host = "https://nango.example.com"
 }
 ```
 
@@ -33,3 +37,7 @@ provider "nango" {
 ### Required
 
 - `environment_key` (String)
+
+### Optional
+
+- `host` (String) The base URL for the Nango API. Defaults to `https://api.nango.dev`. Can also be set via the `NANGO_HOST` environment variable.

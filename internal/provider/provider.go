@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -37,6 +38,13 @@ func New(version string) func() provider.Provider {
 
 type nangoProviderMdoel struct {
 	EnvironmentKey types.String `tfsdk:"environment_key"`
+	Host           types.String `tfsdk:"host"`
+}
+
+// nangoClient wraps the HTTP client and base URL for the Nango API.
+type nangoClient struct {
+	client  *retryablehttp.Client
+	baseURL string
 }
 
 // nangoProvider is the provider implementation.
@@ -59,6 +67,10 @@ func (p *nangoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 		Attributes: map[string]schema.Attribute{
 			"environment_key": schema.StringAttribute{
 				Required: true,
+			},
+			"host": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "The base URL for the Nango API. Defaults to `https://api.nango.dev`. Can also be set via the `NANGO_HOST` environment variable.",
 			},
 		},
 	}
@@ -103,6 +115,15 @@ func (p *nangoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
+	host := os.Getenv("NANGO_HOST")
+	if !config.Host.IsNull() && !config.Host.IsUnknown() {
+		host = config.Host.ValueString()
+	}
+	if host == "" {
+		host = "https://api.nango.dev"
+	}
+	host = strings.TrimRight(host, "/")
+
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = 3                          // Maximum retry attempts
 	retryClient.RetryWaitMin = 1 * time.Second        // Minimum wait time between retries
@@ -110,8 +131,13 @@ func (p *nangoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	retryClient.HTTPClient.Timeout = 30 * time.Second // Set the timeout for the HTTP client
 	retryClient.HTTPClient.Transport = &myTransport{authKey: environmentKey, next: retryClient.HTTPClient.Transport}
 
-	resp.DataSourceData = retryClient
-	resp.ResourceData = retryClient
+	nc := &nangoClient{
+		client:  retryClient,
+		baseURL: host,
+	}
+
+	resp.DataSourceData = nc
+	resp.ResourceData = nc
 }
 
 // DataSources defines the data sources implemented in the provider.

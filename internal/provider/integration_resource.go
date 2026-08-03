@@ -45,7 +45,7 @@ type integrationCredentialsRequestModel struct {
 
 // integrationResource is the resource implementation.
 type integrationResource struct {
-	client *retryablehttp.Client
+	client *nangoClient
 }
 
 // Metadata returns the resource type name.
@@ -140,7 +140,7 @@ func (r *integrationResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Create a new request with the JSON body
-	_, err = r.client.Post("https://api.nango.dev/integrations", "application/json", requestBody)
+	_, err = r.client.client.Post(r.client.baseURL+"/integrations", "application/json", requestBody)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Create Integration",
@@ -149,7 +149,7 @@ func (r *integrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	getResponse, gErr := r.client.Get("https://api.nango.dev/integrations/" + plan.UniqueKey.ValueString() + "?include=webhook&include=credentials")
+	getResponse, gErr := r.client.client.Get(r.client.baseURL + "/integrations/" + plan.UniqueKey.ValueString() + "?include=webhook&include=credentials")
 	if gErr != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Get Integration",
@@ -192,8 +192,9 @@ func (r *integrationResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Get refreshed integration value from Nango, including credentials/scopes
-	integrationResponse, err := r.client.Get("https://api.nango.dev/integrations/" + state.UniqueKey.ValueString() + "?include=credentials")
-	if err != nil {
+	integrationResponse, err := r.client.client.Get(r.client.baseURL + "/integrations/" + state.UniqueKey.ValueString() + "?include=credentials")
+
+  if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Nango Integration",
 			"Could not read Nango integration "+state.UniqueKey.ValueString()+": "+err.Error(),
@@ -293,7 +294,7 @@ func (r *integrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// Create a PATCH request to update the integration
-	req2, err := retryablehttp.NewRequest("PATCH", "https://api.nango.dev/integrations/"+plan.UniqueKey.ValueString(), requestBody)
+	req2, err := retryablehttp.NewRequest("PATCH", r.client.baseURL+"/integrations/"+plan.UniqueKey.ValueString(), requestBody)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Create Request",
@@ -303,7 +304,7 @@ func (r *integrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	req2.Header.Set("Content-Type", "application/json")
 
-	response, err := r.client.Do(req2)
+	response, err := r.client.client.Do(req2)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Update Integration",
@@ -362,12 +363,12 @@ func (r *integrationResource) Configure(_ context.Context, req resource.Configur
 		return
 	}
 
-	client, ok := req.ProviderData.(*retryablehttp.Client)
+	client, ok := req.ProviderData.(*nangoClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *hashicups.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *nangoClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
