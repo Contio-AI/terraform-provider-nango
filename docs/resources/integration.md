@@ -35,10 +35,13 @@ resource "nango_integration" "google" {
 
 ### Required
 
-- `credentials` (Attributes) The credentials for this integration (see [below for nested schema](#nestedatt--credentials))
 - `display_name` (String) The provider display name.
 - `nango_provider` (String) The nango_provider
 - `unique_key` (String) The integration ID that you created in Nango.
+
+### Optional
+
+- `credentials` (Attributes) The credentials for this integration. Omit entirely for auth modes that carry no integration-level secret (e.g. BASIC, API_KEY), where credentials are supplied per-connection. (see [below for nested schema](#nestedatt--credentials))
 
 ### Read-Only
 
