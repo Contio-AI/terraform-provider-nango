@@ -30,10 +30,18 @@ func NewIntegrationResource() resource.Resource {
 }
 
 type integrationRequestModel struct {
-	UniqueKey     *string                            `json:"unique_key,omitempty"`
-	DisplayName   string                             `json:"display_name"`
-	NangoProvider *string                            `json:"provider,omitempty"`
-	Credentials   integrationCredentialsRequestModel `json:"credentials"`
+	UniqueKey   *string `json:"unique_key,omitempty"`
+	DisplayName string  `json:"display_name"`
+	// NangoProvider is the Nango provider slug (e.g. "salesforce").
+	NangoProvider *string `json:"provider,omitempty"`
+	// Credentials is a pointer with omitempty so it can be left out entirely.
+	//
+	// Nango's public integration API accepts credentials only for the OAUTH1,
+	// OAUTH2, TBA, APP and CUSTOM auth modes. BASIC and API_KEY integrations
+	// hold no integration-level secret at all — the secrets are per-connection
+	// — so for those the block must be absent. Sending an empty-string block
+	// (which a non-pointer field without omitempty always produced) is rejected.
+	Credentials *integrationCredentialsRequestModel `json:"credentials,omitempty"`
 }
 
 type integrationCredentialsRequestModel struct {
@@ -41,6 +49,29 @@ type integrationCredentialsRequestModel struct {
 	ClientSecret string `json:"client_secret"`
 	Type         string `json:"type"`
 	Scopes       string `json:"scopes"` // Changed to string for API
+}
+
+// buildCredentialsRequest converts the planned credentials block into its
+// request form, returning nil when the block was omitted.
+//
+// integrationModel.Credentials is a pointer, so it is nil whenever the
+// practitioner leaves `credentials` out. Both Create and Update previously
+// dereferenced it unconditionally (plan.Credentials.Scopes.ElementsAs), which
+// panics for a credential-less integration.
+func buildCredentialsRequest(ctx context.Context, credentials *integrationCredentialModel) *integrationCredentialsRequestModel {
+	if credentials == nil {
+		return nil
+	}
+
+	var scopes []string
+	credentials.Scopes.ElementsAs(ctx, &scopes, false)
+
+	return &integrationCredentialsRequestModel{
+		ClientId:     credentials.ClientId.ValueString(),
+		ClientSecret: credentials.ClientSecret.ValueString(),
+		Type:         credentials.Type.ValueString(),
+		Scopes:       strings.Join(scopes, ","), // Now a comma-delimited string
+	}
 }
 
 // integrationResource is the resource implementation.
@@ -74,8 +105,13 @@ func (r *integrationResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Last time it was updated",
 			},
 			"credentials": schema.SingleNestedAttribute{
-				Required:            true,
-				MarkdownDescription: "The credentials for this integration",
+				// Optional, not Required: BASIC and API_KEY integrations hold
+				// no integration-level credentials, and Nango rejects an empty
+				// credentials block. Widening Required -> Optional is additive,
+				// so every existing OAuth2 configuration is unaffected and no
+				// state migration is needed.
+				Optional:            true,
+				MarkdownDescription: "The credentials for this integration. Omit entirely for auth modes that carry no integration-level secret (e.g. BASIC, API_KEY), where credentials are supplied per-connection.",
 				Attributes: map[string]schema.Attribute{
 					"client_id": schema.StringAttribute{
 						Required:            true,
@@ -111,22 +147,14 @@ func (r *integrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// Convert scopes from types.List to []string, then to comma-delimited string
-	var scopes []string
-	plan.Credentials.Scopes.ElementsAs(ctx, &scopes, false)
-	scopesString := strings.Join(scopes, ",")
-
-	// Populate the request model with data from the plan
+	// Populate the request model with data from the plan. Credentials are nil
+	// when the block is omitted, which is the only valid form for auth modes
+	// that carry no integration-level secret.
 	request := integrationRequestModel{
 		UniqueKey:     plan.UniqueKey.ValueStringPointer(),
 		DisplayName:   plan.DisplayName.ValueString(),
 		NangoProvider: plan.NangoProvider.ValueStringPointer(),
-		Credentials: integrationCredentialsRequestModel{
-			ClientId:     plan.Credentials.ClientId.ValueString(),
-			ClientSecret: plan.Credentials.ClientSecret.ValueString(),
-			Type:         plan.Credentials.Type.ValueString(),
-			Scopes:       scopesString, // Now a comma-delimited string
-		},
+		Credentials:   buildCredentialsRequest(ctx, plan.Credentials),
 	}
 
 	// Convert request to JSON
@@ -265,21 +293,11 @@ func (r *integrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	// Convert scopes from types.List to []string, then to comma-delimited string
-	var scopes []string
-	plan.Credentials.Scopes.ElementsAs(ctx, &scopes, false)
-	scopesString := strings.Join(scopes, ",")
-
 	// Populate the request model with data from the plan (excluding unique_key and provider for updates)
 	// unique_key must NOT be in the body — Nango interprets it as a rename attempt
 	request := integrationRequestModel{
 		DisplayName: plan.DisplayName.ValueString(),
-		Credentials: integrationCredentialsRequestModel{
-			ClientId:     plan.Credentials.ClientId.ValueString(),
-			ClientSecret: plan.Credentials.ClientSecret.ValueString(),
-			Type:         plan.Credentials.Type.ValueString(),
-			Scopes:       scopesString, // Now a comma-delimited string
-		},
+		Credentials: buildCredentialsRequest(ctx, plan.Credentials),
 	}
 
 	// Convert request to JSON
