@@ -4,6 +4,7 @@
 package provider
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 )
@@ -99,7 +100,10 @@ func TestIntegrationUpdateRequestOmitsUniqueKeyAndProvider(t *testing.T) {
 // dereferencing a nil plan.Credentials. integrationModel.Credentials is a
 // pointer, so it is nil whenever the credentials block is omitted.
 func TestBuildCredentialsRequestHandlesNilPlanCredentials(t *testing.T) {
-	if got := buildCredentialsRequest(nil, nil); got != nil {
-		t.Errorf("buildCredentialsRequest(nil) = %+v, want nil", got)
+	// context.TODO() rather than nil: staticcheck SA1012 rejects a nil Context
+	// even where the callee tolerates it. The nil under test is the second
+	// argument — the omitted credentials block.
+	if got := buildCredentialsRequest(context.TODO(), nil); got != nil {
+		t.Errorf("buildCredentialsRequest(ctx, nil) = %+v, want nil", got)
 	}
 }
