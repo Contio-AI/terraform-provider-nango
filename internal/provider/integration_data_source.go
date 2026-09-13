@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -21,7 +20,7 @@ var (
 )
 
 type integrationDataSource struct {
-	client *retryablehttp.Client
+	client *nangoClient
 }
 
 type nangoIntegrationResponse struct {
@@ -133,7 +132,7 @@ func (d *integrationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 func (d *integrationDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state integrationDataSourceModel
 
-	integrationsResponse, err := d.client.Get("https://api.nango.dev/integrations")
+	integrationsResponse, err := d.client.client.Get(d.client.baseURL + "/integrations")
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Read Integrations",
@@ -180,11 +179,11 @@ func (d *integrationDataSource) Configure(_ context.Context, req datasource.Conf
 		return
 	}
 
-	client, ok := req.ProviderData.(*retryablehttp.Client)
+	client, ok := req.ProviderData.(*nangoClient)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *retryablehttp.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *nangoClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
